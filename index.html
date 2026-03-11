@@ -428,8 +428,17 @@ function getFilters(p) {
 
 function filterList(projects, f) {
   return projects.filter(p => {
-    if (f.search && ![p.unitNumber,p.partNo,p.prodType,p.client,p.atm,p.drawnBy]
-          .some(v => v?.toLowerCase().includes(f.search))) return false;
+    if (f.search) {
+      const basicMatch = [p.unitNumber,p.partNo,p.prodType,p.client,p.atm,p.drawnBy]
+        .some(v => v?.toLowerCase().includes(f.search));
+      const tlpnMatch = (p.tlpns || []).some(t => {
+        const isObj = typeof t === 'object' && t !== null;
+        const tlpn  = isObj ? (t.tlpn || t.name || '') : t;
+        const bank  = isObj ? (t.bankName || '') : '';
+        return tlpn.toLowerCase().includes(f.search) || bank.toLowerCase().includes(f.search);
+      });
+      if (!basicMatch && !tlpnMatch) return false;
+    }
     if (f.prodType  && p.prodType  !== f.prodType)  return false;
     if (f.client    && p.client    !== f.client)    return false;
     if (f.drawnBy   && p.drawnBy   !== f.drawnBy)   return false;
@@ -582,9 +591,11 @@ function paintRows(p) {
     const r  = rows[i];
     const st = starred.has(r.unitNumber);
     const u  = esc(r.unitNumber);
+    const hasTlpns = r.tlpns && r.tlpns.length > 0;
+    const isOpen   = expanded.has(u);
     rb += `<tr onclick="showDetail('${u}')">` +
       `<td class="col-star"><button class="star-btn${st?' starred':''}" data-unit="${u}" onclick="toggleStar('${u}',event)" title="${st?'Remove from Preferred':'Add to Preferred'}">★</button></td>` +
-      `<td class="col-unit">${u||dash}</td>` +
+      `<td class="col-unit" style="display:flex;align-items:center;gap:4px">${hasTlpns ? `<button class="expand-btn${isOpen?' open':''}" onclick="toggleExpand('${u}',event)" style="flex-shrink:0">&#9654;</button>` : `<span style="display:inline-block;width:18px;flex-shrink:0"></span>`}${u||dash}</td>` +
       `<td><span class="badge badge-count">${r.fileCount}</span></td>` +
       `<td>${r.prodType?`<span class="badge badge-type">${esc(r.prodType)}</span>`:dash}</td>` +
       `<td>${esc(r.client)||dash}</td>` +
@@ -594,25 +605,23 @@ function paintRows(p) {
       `<td class="col-dim">${esc(r.height)||dash}</td>` +
       `<td class="col-dim">${esc(r.width)||dash}</td>` +
       `<td class="col-dim">${esc(r.depth)||dash}</td>` +
-      `<td class="col-tlpn">${r.tlpns && r.tlpns.length
-        ? `<button class="expand-btn${expanded.has(u) ? ' open' : ''}" onclick="toggleExpand('${u}',event)">&#9654;</button><span class="badge badge-tlpn" title="${r.tlpns.map(t => typeof t === 'object' ? t.tlpn || t.name || '' : t).join('\n')}">${r.tlpns.length}</span>`
-        : dash}</td>` +
+      `<td class="col-tlpn">${hasTlpns?`<span class="badge badge-tlpn" title="${r.tlpns.map(t=>typeof t==='object'?t.tlpn||t.name||'':t).join('\n')}">${r.tlpns.length}</span>`:dash}</td>` +
       `</tr>`;
 
     // Sub-rows for expanded units
-    if (expanded.has(u) && r.tlpns && r.tlpns.length) {
+    if (isOpen && hasTlpns) {
       r.tlpns.forEach(t => {
-        const isObj  = typeof t === 'object' && t !== null;
-        const tlpn   = isObj ? (t.tlpn || t.name || '') : t;
-        const bank   = isObj ? (t.bankName || '') : '';
-        const url    = isObj ? (t.renderUrl || '') : '';
-        const link   = url
+        const isObj = typeof t === 'object' && t !== null;
+        const tlpn  = isObj ? (t.tlpn || t.name || '') : t;
+        const bank  = isObj ? (t.bankName || '') : '';
+        const url   = isObj ? (t.renderUrl || '') : '';
+        const link  = url
           ? `<a class="render-link" href="${esc(url)}" target="_blank">View Rendering</a>`
           : `<span class="render-link" style="opacity:.35;cursor:default">No Rendering</span>`;
         rb += `<tr class="sub-row" data-unit="${u}">` +
           `<td></td>` +
-          `<td colspan="2" style="padding-left:28px"><span class="tlpn-name" style="color:var(--text);font-weight:500">${esc(tlpn)}</span></td>` +
-          `<td colspan="3"><span class="bank-name">${bank ? esc(bank) : '<span style="opacity:.4">—</span>'}</span></td>` +
+          `<td colspan="2" style="padding-left:36px"><span style="color:var(--text);font-weight:500">${esc(tlpn)}</span></td>` +
+          `<td colspan="3"><span style="color:var(--teal)">${bank ? esc(bank) : '<span style="opacity:.4">—</span>'}</span></td>` +
           `<td colspan="${COLS.length - 6}">${link}</td>` +
           `</tr>`;
       });
