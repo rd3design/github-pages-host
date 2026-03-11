@@ -458,17 +458,14 @@ function clearFilters(p) {
 }
 
 // ── Expand/collapse TLPN sub-rows ────────────────────────────────────────────
-function toggleExpand(unit, btn) {
+function toggleExpand(unit, e) {
+  e.stopPropagation();
   if (expanded.has(unit)) {
     expanded.delete(unit);
-    btn.classList.remove('open');
-    document.querySelectorAll(`.sub-row[data-unit="${unit}"]`).forEach(r => r.remove());
   } else {
     expanded.add(unit);
-    btn.classList.add('open');
-    // Sub-rows are injected by paintRows after re-render
-    paintRows(activeTab);
   }
+  paintRows(activeTab);
 }
 
 // ── Star toggle ───────────────────────────────────────────────────────────────
@@ -597,8 +594,29 @@ function paintRows(p) {
       `<td class="col-dim">${esc(r.height)||dash}</td>` +
       `<td class="col-dim">${esc(r.width)||dash}</td>` +
       `<td class="col-dim">${esc(r.depth)||dash}</td>` +
-      `<td class="col-tlpn">${r.tlpns&&r.tlpns.length?`<span class="badge badge-tlpn" title="${r.tlpns.map(t=>typeof t==='object'?t.tlpn||t.name||'':t).join('\n')}">${r.tlpns.length}</span>`:dash}</td>` +
+      `<td class="col-tlpn">${r.tlpns && r.tlpns.length
+        ? `<button class="expand-btn${expanded.has(u) ? ' open' : ''}" onclick="toggleExpand('${u}',event)">&#9654;</button><span class="badge badge-tlpn" title="${r.tlpns.map(t => typeof t === 'object' ? t.tlpn || t.name || '' : t).join('\n')}">${r.tlpns.length}</span>`
+        : dash}</td>` +
       `</tr>`;
+
+    // Sub-rows for expanded units
+    if (expanded.has(u) && r.tlpns && r.tlpns.length) {
+      r.tlpns.forEach(t => {
+        const isObj  = typeof t === 'object' && t !== null;
+        const tlpn   = isObj ? (t.tlpn || t.name || '') : t;
+        const bank   = isObj ? (t.bankName || '') : '';
+        const url    = isObj ? (t.renderUrl || '') : '';
+        const link   = url
+          ? `<a class="render-link" href="${esc(url)}" target="_blank">View Rendering</a>`
+          : `<span class="render-link" style="opacity:.35;cursor:default">No Rendering</span>`;
+        rb += `<tr class="sub-row" data-unit="${u}">` +
+          `<td></td>` +
+          `<td colspan="2" style="padding-left:28px"><span class="tlpn-name" style="color:var(--text);font-weight:500">${esc(tlpn)}</span></td>` +
+          `<td colspan="3"><span class="bank-name">${bank ? esc(bank) : '<span style="opacity:.4">—</span>'}</span></td>` +
+          `<td colspan="${COLS.length - 6}">${link}</td>` +
+          `</tr>`;
+      });
+    }
   }
 
   // Bottom spacer
