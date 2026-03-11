@@ -91,6 +91,16 @@ td.col-muted{font-size:11px;color:var(--muted)}
 .badge-count{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.2)}
 .badge-tlpn{background:rgba(245,197,24,.1);color:var(--gold);border:1px solid rgba(245,197,24,.2);cursor:default}
 td.col-tlpn{text-align:center}
+.expand-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0 4px;line-height:1;transition:transform .15s}
+.expand-btn.open{transform:rotate(90deg)}
+tr.sub-row td{background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);font-size:11px;color:var(--muted2,#8899aa)}
+tr.sub-row td:first-child{padding-left:32px}
+tr.sub-row .tlpn-name{color:var(--fg);font-weight:500}
+tr.sub-row .bank-name{color:var(--teal);margin-left:8px}
+tr.sub-row .render-link{margin-left:8px;color:var(--muted);text-decoration:none;font-size:10px;border:1px solid var(--border2);border-radius:3px;padding:1px 5px}
+tr.sub-row .render-link:hover{color:var(--teal);border-color:var(--teal)}
+.badge-tlpn{background:rgba(245,197,24,.1);color:var(--gold);border:1px solid rgba(245,197,24,.2);cursor:default}
+td.col-tlpn{text-align:center}
 .dash{color:var(--border2)}
 
 /* star */
@@ -140,23 +150,6 @@ td.col-star{text-align:center;padding:4px 6px}
 @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
-  
-  
-  <meta name="description" content="Lovable Generated Project">
-  
-  
-  <meta property="og:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/cc7eba1b-01f3-47a5-b277-8c3bd10f7b3b/id-preview-ed4300fb--a7ba095b-b252-42d4-adec-9370c30743af.lovable.app-1773247061666.png">
-  <meta name="twitter:image" content="https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/cc7eba1b-01f3-47a5-b277-8c3bd10f7b3b/id-preview-ed4300fb--a7ba095b-b252-42d4-adec-9370c30743af.lovable.app-1773247061666.png">
-  <meta name="twitter:card" content="summary_large_image">
-  <meta property="og:type" content="website">
-  
-  
-  
-  
-  <meta property="og:title" content="PDM Project Index — Sterling ATM">
-  <meta name="twitter:title" content="PDM Project Index — Sterling ATM">
-  <meta property="og:description" content="Lovable Generated Project">
-  <meta name="twitter:description" content="Lovable Generated Project">
 </head>
 <body>
 
@@ -238,6 +231,7 @@ const COLS = [
 let allProjects = [];
 let projectMap  = {};          // unitNumber → project (O(1) lookups)
 let starred     = new Set(JSON.parse(localStorage.getItem(LS_STARS) || '[]')); // local cache, overwritten after API load
+const expanded  = new Set(); // units with sub-rows currently expanded
 let activeTab   = 'main';
 let sort        = { main:{ col:'unitNumber', asc:true }, pref:{ col:'unitNumber', asc:true } };
 let filtered    = { main:[], pref:[] };  // cached filtered lists
@@ -433,21 +427,17 @@ function getFilters(p) {
 }
 
 function filterList(projects, f) {
-  return projects.filter(row => {
-    if (f.search) {
-      const inFields = [row.unitNumber,row.partNo,row.prodType,row.client,row.atm,row.drawnBy]
-          .some(v => v?.toLowerCase().includes(f.search));
-      const inTlpns  = (row.tlpns||[]).some(t => t.toLowerCase().includes(f.search));
-      if (!inFields && !inTlpns) return false;
-    }
-    if (f.prodType  && row.prodType  !== f.prodType)  return false;
-    if (f.client    && row.client    !== f.client)    return false;
-    if (f.drawnBy   && row.drawnBy   !== f.drawnBy)   return false;
-    if (f.drawnDate && row.drawnDate !== f.drawnDate) return false;
-    if (f.atm       && row.atm       !== f.atm)       return false;
-    if (f.height    && row.height    !== f.height)    return false;
-    if (f.width     && row.width     !== f.width)     return false;
-    if (f.depth     && row.depth     !== f.depth)     return false;
+  return projects.filter(p => {
+    if (f.search && ![p.unitNumber,p.partNo,p.prodType,p.client,p.atm,p.drawnBy]
+          .some(v => v?.toLowerCase().includes(f.search))) return false;
+    if (f.prodType  && p.prodType  !== f.prodType)  return false;
+    if (f.client    && p.client    !== f.client)    return false;
+    if (f.drawnBy   && p.drawnBy   !== f.drawnBy)   return false;
+    if (f.drawnDate && p.drawnDate !== f.drawnDate) return false;
+    if (f.atm       && p.atm       !== f.atm)       return false;
+    if (f.height    && p.height    !== f.height)    return false;
+    if (f.width     && p.width     !== f.width)     return false;
+    if (f.depth     && p.depth     !== f.depth)     return false;
     return true;
   });
 }
@@ -465,6 +455,20 @@ function clearFilters(p) {
   document.getElementById('s-search-' + p).value = '';
   FILTER_KEYS.forEach(k => { const el = document.getElementById(`s-${k}-${p}`); if (el) el.value = ''; });
   applyFilters(p);
+}
+
+// ── Expand/collapse TLPN sub-rows ────────────────────────────────────────────
+function toggleExpand(unit, btn) {
+  if (expanded.has(unit)) {
+    expanded.delete(unit);
+    btn.classList.remove('open');
+    document.querySelectorAll(`.sub-row[data-unit="${unit}"]`).forEach(r => r.remove());
+  } else {
+    expanded.add(unit);
+    btn.classList.add('open');
+    // Sub-rows are injected by paintRows after re-render
+    paintRows(activeTab);
+  }
 }
 
 // ── Star toggle ───────────────────────────────────────────────────────────────
