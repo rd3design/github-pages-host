@@ -597,7 +597,7 @@ function paintRows(p) {
       `<td class="col-dim">${esc(r.height)||dash}</td>` +
       `<td class="col-dim">${esc(r.width)||dash}</td>` +
       `<td class="col-dim">${esc(r.depth)||dash}</td>` +
-      `<td class="col-tlpn">${r.tlpns&&r.tlpns.length?`<span class="badge badge-tlpn" title="${r.tlpns.join('\n')}">${r.tlpns.length}</span>`:dash}</td>` +
+      `<td class="col-tlpn">${r.tlpns&&r.tlpns.length?`<span class="badge badge-tlpn" title="${r.tlpns.map(t=>typeof t==='object'?t.tlpn||t.name||'':t).join('\n')}">${r.tlpns.length}</span>`:dash}</td>` +
       `</tr>`;
   }
 
@@ -666,7 +666,12 @@ function showDetail(unit) {
     const tlpns = p.tlpns || [];
     tlpnEl.innerHTML = tlpns.length === 0
       ? '<span style="color:var(--muted);font-size:11px">None on record</span>'
-      : tlpns.map(t => `<span class="badge badge-tlpn" style="margin:2px 3px 2px 0;display:inline-block">${esc(t)}</span>`).join('');
+      : tlpns.map(t => {
+        const isObj = typeof t === 'object' && t !== null;
+        const name  = isObj ? (t.tlpn || t.name || '') : t;
+        const bank  = isObj && t.bankName ? ` — ${t.bankName}` : '';
+        return `<span class="badge badge-tlpn" style="margin:2px 3px 2px 0;display:inline-block" title="${esc(name)}">${esc(name)}${esc(bank)}</span>`;
+      }).join('');
   }
 
   const pp = `Projects/${encodeURIComponent(unit)}/Documentation/PDF`;
