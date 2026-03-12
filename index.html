@@ -383,6 +383,7 @@ let filtered    = { main:[], pref:[], surround:[], enclosure:[], topper:[], cabi
 // Setup: create a free account at jsonbin.io, make a bin with {"starred":[]},
 // then paste your Master Key and Bin ID into the two constants below.
 const JSONBIN_KEY    = 'YOUR_MASTER_KEY_HERE';   // X-Master-Key header
+const ANTHROPIC_KEY  = '';  // ← paste your sk-ant-... key here to enable AI features
 const JSONBIN_BIN_ID = 'YOUR_BIN_ID_HERE';       // the bin ID from the URL
 const JSONBIN_URL    = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
@@ -1098,15 +1099,22 @@ ${tlpnBanks ? `Deployed at: ${tlpnBanks}` : ''}
 Respond with ONLY a JSON array of 4 strings, no markdown, no preamble. Example: ["Bullet one","Bullet two","Bullet three","Bullet four"]`;
 
   try {
+    if (!ANTHROPIC_KEY) { console.warn('[Deck] ANTHROPIC_KEY not set — using static bullets'); return null; }
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 300,
         messages: [{ role: 'user', content: prompt }]
       })
     });
+    if (!res.ok) { const err = await res.text(); console.error('[Deck] Bullets API error:', res.status, err); return null; }
     const data = await res.json();
     const text = data.content?.[0]?.text || '[]';
     const clean = text.replace(/```json|```/g, '').trim();
@@ -1183,9 +1191,15 @@ if (logoImg) { ... }
 Respond with ONLY the JavaScript code, no markdown fences, no explanation.`
   });
 
+  if (!ANTHROPIC_KEY) throw new Error('ANTHROPIC_KEY not set — cannot apply AI branding');
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 800,
@@ -1193,14 +1207,23 @@ Respond with ONLY the JavaScript code, no markdown fences, no explanation.`
     })
   });
 
+  if (!res.ok) {
+    const errText = await res.text();
+    console.error('[Brand] API error:', res.status, errText);
+    throw new Error(`Claude API error ${res.status}`);
+  }
   const data = await res.json();
   const code = data.content?.[0]?.text?.replace(/```javascript|```js|```/g, '').trim();
-  if (!code) throw new Error('No code returned from Claude');
+  if (!code) throw new Error('No code returned from Claude branding call');
 
   // Execute the returned canvas drawing code
-  const drawingImg = await new Promise(res2 => {
-    const img = new Image(); img.onload = () => res2(img); img.src = drawingB64;
-  });
+  // drawingB64 may be null if PDF fetch failed — create blank white image in that case
+  let drawingImg = null;
+  if (drawingB64) {
+    drawingImg = await new Promise(res2 => {
+      const img = new Image(); img.onload = () => res2(img); img.src = drawingB64;
+    });
+  }
 
   let logoImg = null;
   if (branding.logoB64) {
@@ -1217,8 +1240,8 @@ Respond with ONLY the JavaScript code, no markdown fences, no explanation.`
   }
 
   const canvas = document.createElement('canvas');
-  canvas.width  = drawingImg.naturalWidth;
-  canvas.height = drawingImg.naturalHeight;
+  canvas.width  = drawingImg ? drawingImg.naturalWidth  : 1200;
+  canvas.height = drawingImg ? drawingImg.naturalHeight : 900;
   const ctx = canvas.getContext('2d');
 
   // White base
@@ -1228,7 +1251,24 @@ Respond with ONLY the JavaScript code, no markdown fences, no explanation.`
   // Run Claude's generated branding code
   // eslint-disable-next-line no-new-func
   const brandFn = new Function('canvas', 'ctx', 'drawingImg', 'logoImg', 'brandColor', code);
-  brandFn(canvas, ctx, drawingImg, logoImg, brandColor);
+  try {
+    brandFn(canvas, ctx, drawingImg, logoImg, brandColor);
+  } catch(fnErr) {
+    // Claude's generated code crashed — draw fallback manually
+    console.warn('[Brand] Generated code failed, using fallback:', fnErr.message);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (drawingImg) ctx.drawImage(drawingImg, 0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = brandColor;
+    ctx.fillRect(0, 0, canvas.width, 8);
+    ctx.fillRect(0, canvas.height - 8, canvas.width, 8);
+    if (logoImg) {
+      const lh = Math.round(canvas.height * 0.10);
+      const lw = Math.round(lh * (logoImg.naturalWidth / logoImg.naturalHeight));
+      const pad = 20;
+      ctx.drawImage(logoImg, canvas.width - lw - pad, canvas.height - lh - pad, lw, lh);
+    }
+  }
 
   return canvas.toDataURL('image/jpeg', 0.90);
 }
@@ -1396,6 +1436,7 @@ async function generatePdf(pages, branding) {
     // Render first page of PDF using PDF.js
     const pdfUrl = (proj.files || []).find(f => f.pdfUrl)?.pdfUrl || null;
     let renderedPdfImg = null;
+    console.log(`[Deck] ${proj.unitNumber} — pdfUrl: ${pdfUrl ? pdfUrl.slice(0,60)+'…' : 'NONE'}`);
 
     if (pdfUrl) {
       try {
@@ -1433,16 +1474,24 @@ async function generatePdf(pages, branding) {
 
         // Try proxy first, fall back to raw URL
         try {
+          console.log('[Deck] Trying proxy:', proxyUrl.slice(0,80));
           pdfBytes = await Promise.race([
             tryFetch(proxyUrl),
             new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
           ]);
+          console.log('[Deck] Proxy fetch succeeded, bytes:', pdfBytes.byteLength);
         } catch(e1) {
-          console.warn('Proxy fetch failed, trying raw URL:', e1.message);
-          pdfBytes = await Promise.race([
-            tryFetch(rawUrl),
-            new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
-          ]);
+          console.warn('[Deck] Proxy fetch failed:', e1.message, '— trying raw URL');
+          try {
+            pdfBytes = await Promise.race([
+              tryFetch(rawUrl),
+              new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+            ]);
+            console.log('[Deck] Raw URL fetch succeeded, bytes:', pdfBytes.byteLength);
+          } catch(e2) {
+            console.warn('[Deck] Raw URL also failed:', e2.message);
+            throw e2;
+          }
         }
 
         const pdfDoc2 = await window.pdfjsLib.getDocument({ data: pdfBytes }).promise;
@@ -1461,20 +1510,25 @@ async function generatePdf(pages, branding) {
         await page.render({ canvasContext: ctx, viewport }).promise;
 
         renderedPdfImg = canvas.toDataURL('image/jpeg', 0.88);
-
-        // If branded deck, send the rendered drawing to Claude for visual branding
-        if (branding?.active && renderedPdfImg) {
-          try {
-            renderedPdfImg = await applyBrandingToImage(renderedPdfImg, branding, proj);
-          } catch(e) {
-            console.warn('Branding overlay failed, using plain drawing:', e.message);
-          }
-        }
+        console.log('[Deck] PDF rendered to image, size:', renderedPdfImg.length, 'chars');
 
       } catch(e) {
         console.warn('PDF render failed for', proj.unitNumber, ':', e.message);
       }
     }
+
+    // Apply AI branding — always fires when branded deck, regardless of PDF render success
+    if (branding?.active) {
+      try {
+        console.log('[Deck] Calling Claude to brand image for', proj.unitNumber);
+        setDeckStatus(`Branding drawing for ${proj.unitNumber} with AI…`, 60);
+        renderedPdfImg = await applyBrandingToImage(renderedPdfImg, branding, proj);
+        console.log('[Deck] AI branding applied, image size:', renderedPdfImg?.length);
+      } catch(e) {
+        console.warn('[Deck] AI branding failed:', e);
+      }
+    }
+
 
     if (renderedPdfImg) {
       // Fit rendered PDF page into image area maintaining aspect ratio
