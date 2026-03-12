@@ -25,7 +25,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);height:100vh
 .stat-pill b{color:var(--teal);font-weight:600}
 
 /* tab bar */
-.tab-bar{background:#0d1017;border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:flex-end;gap:4px;flex-shrink:0;height:40px}
+.tab-bar{background:#0d1017;border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:flex-end;gap:4px;flex-shrink:0;height:40px;overflow-x:auto;scrollbar-width:none}.tab-bar::-webkit-scrollbar{display:none}
 .tab-btn{background:transparent;border:1px solid transparent;border-bottom:none;color:var(--muted);font-family:var(--sans);font-size:12px;font-weight:500;padding:0 18px;height:34px;cursor:pointer;border-radius:6px 6px 0 0;transition:color .15s,background .15s,border-color .15s;white-space:nowrap}
 .tab-btn:hover{color:var(--text);background:rgba(255,255,255,.04)}
 .tab-btn.active{color:var(--teal);background:var(--surface);border-color:var(--border);border-bottom-color:var(--surface);position:relative;top:1px}
@@ -125,12 +125,12 @@ td.col-star{text-align:center;padding:4px 6px}
 .dim-box{flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:10px;text-align:center}
 .dim-box label{display:block;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
 .dim-box span{font-size:15px;font-weight:700;background:var(--teal-g);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.pdf-link-wrap{padding:12px 22px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:8px}
-.web2-links{display:flex;gap:8px}
-.pdf-link{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:7px;padding:9px 12px;font-size:11px;font-weight:700;text-decoration:none;text-transform:uppercase;letter-spacing:.05em;transition:opacity .15s;text-align:center}
-.pdf-link:hover{opacity:.82}
-.pdf-link-internal{background:rgba(79,195,247,.12);border:1px solid rgba(79,195,247,.25);color:var(--blue)}
-.pdf-link-external{background:rgba(0,230,118,.1);border:1px solid rgba(0,230,118,.22);color:var(--green)}
+
+
+
+
+
+
 .pdf-path{font-size:10px;color:var(--muted);word-break:break-all;padding:0 2px}
 .panel-files{padding:14px 22px;flex:1}
 .panel-files h3{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px}
@@ -166,6 +166,27 @@ td.col-star{text-align:center;padding:4px 6px}
   <button class="tab-btn" onclick="switchTab('pref',this)">
     Preferred Products <span class="tab-badge tab-badge-gold" id="badge-pref">0</span>
   </button>
+  <button class="tab-btn" onclick="switchTab('surround',this)">
+    SURROUND <span class="tab-badge" id="badge-surround">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('enclosure',this)">
+    ENCLOSURE <span class="tab-badge" id="badge-enclosure">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('topper',this)">
+    TOPPER <span class="tab-badge" id="badge-topper">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('cabinet',this)">
+    CABINET <span class="tab-badge" id="badge-cabinet">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('kiosk',this)">
+    KIOSK <span class="tab-badge" id="badge-kiosk">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('canopy_signbox',this)">
+    CANOPY SIGNBOX <span class="tab-badge" id="badge-canopy_signbox">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('clearance_barrier',this)">
+    CLEARANCE BARRIER <span class="tab-badge" id="badge-clearance_barrier">0</span>
+  </button>
 </div>
 
 <div class="tab-page active" id="tab-main">
@@ -188,6 +209,70 @@ td.col-star{text-align:center;padding:4px 6px}
   </div>
 </div>
 
+<div class="tab-page" id="tab-surround">
+  <div class="layout">
+    <aside id="sidebar-surround"></aside>
+    <main>
+      <div class="toolbar"><div class="result-count" id="rc-surround"></div></div>
+      <div id="tc-surround" class="tc"><div class="state-msg"><div class="spinner"></div><div>Loading...</div></div></div>
+    </main>
+  </div>
+</div>
+<div class="tab-page" id="tab-enclosure">
+  <div class="layout">
+    <aside id="sidebar-enclosure"></aside>
+    <main>
+      <div class="toolbar"><div class="result-count" id="rc-enclosure"></div></div>
+      <div id="tc-enclosure" class="tc"><div class="state-msg"><div class="spinner"></div><div>Loading...</div></div></div>
+    </main>
+  </div>
+</div>
+<div class="tab-page" id="tab-topper">
+  <div class="layout">
+    <aside id="sidebar-topper"></aside>
+    <main>
+      <div class="toolbar"><div class="result-count" id="rc-topper"></div></div>
+      <div id="tc-topper" class="tc"><div class="state-msg"><div class="spinner"></div><div>Loading...</div></div></div>
+    </main>
+  </div>
+</div>
+<div class="tab-page" id="tab-cabinet">
+  <div class="layout">
+    <aside id="sidebar-cabinet"></aside>
+    <main>
+      <div class="toolbar"><div class="result-count" id="rc-cabinet"></div></div>
+      <div id="tc-cabinet" class="tc"><div class="state-msg"><div class="spinner"></div><div>Loading...</div></div></div>
+    </main>
+  </div>
+</div>
+<div class="tab-page" id="tab-kiosk">
+  <div class="layout">
+    <aside id="sidebar-kiosk"></aside>
+    <main>
+      <div class="toolbar"><div class="result-count" id="rc-kiosk"></div></div>
+      <div id="tc-kiosk" class="tc"><div class="state-msg"><div class="spinner"></div><div>Loading...</div></div></div>
+    </main>
+  </div>
+</div>
+<div class="tab-page" id="tab-canopy_signbox">
+  <div class="layout">
+    <aside id="sidebar-canopy_signbox"></aside>
+    <main>
+      <div class="toolbar"><div class="result-count" id="rc-canopy_signbox"></div></div>
+      <div id="tc-canopy_signbox" class="tc"><div class="state-msg"><div class="spinner"></div><div>Loading...</div></div></div>
+    </main>
+  </div>
+</div>
+<div class="tab-page" id="tab-clearance_barrier">
+  <div class="layout">
+    <aside id="sidebar-clearance_barrier"></aside>
+    <main>
+      <div class="toolbar"><div class="result-count" id="rc-clearance_barrier"></div></div>
+      <div id="tc-clearance_barrier" class="tc"><div class="state-msg"><div class="spinner"></div><div>Loading...</div></div></div>
+    </main>
+  </div>
+</div>
+
 <div id="detail-panel">
   <div class="panel-header">
     <div>
@@ -199,7 +284,6 @@ td.col-star{text-align:center;padding:4px 6px}
   </div>
   <div class="panel-meta"    id="pan-meta"></div>
   <div class="dims-row"      id="pan-dims"></div>
-  <div class="pdf-link-wrap" id="pan-links"></div>
   <div style="padding:12px 22px;border-bottom:1px solid var(--border)"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:8px">Top Level Part Numbers</div><div id="pan-tlpns"></div></div>
   <div class="panel-files"><h3>PDF Files</h3><div id="pan-files"></div></div>
 </div>
@@ -232,11 +316,17 @@ FEAT_KEYS.forEach(k => COLS.push({ key:'feat_'+k.replace(/ /g,'_'), label:k, w:4
 // ── State ────────────────────────────────────────────────────────────────────
 let allProjects = [];
 let projectMap  = {};          // unitNumber → project (O(1) lookups)
-let starred     = new Set(JSON.parse(localStorage.getItem(LS_STARS) || '[]')); // local cache, overwritten after API load
+// ── Seeded stars (units with # Combined > 10 from Consolidated2) ──────────────
+// These are the default starred units for all users. Merged into starred on boot.
+const SEEDED_STARS = new Set(["1313.35","1318.01","1318.02","1318.03","1500.01","3021.71","3021.73","3021.81","3021.94","3021.96","3022.02","3022.04","3022.08","3023.18","3023.32","3023.49","3025.01","3025.03","3061.04","3073.17","3073.18","3073.23","3073.26","3073.27","3073.34","3073.35","3073.47","3073.57","3073.58","3073.63","3073.68","3073.71","3086.19","3099.14","3124.02","3124.05","3160.01","3193.01","3201.03","3201.05","3201.08","3201.21","3201.31","3201.32","3215.04","3218.01","3300.04","3301.16","3444.01","3444.03","3445.01","3656.02","3658.01","4008.11","4017.22","4064.14","4191.01","4200.01","4201.05","4202.01","4269.01","5051.91","5061.07","5062.11","5081.21","5081.22","5081.26","5081.49","5081.53","5101.64","5102.14","5102.21","5105.31","5127.53","5127.54","5127.63","5128.08","5128.19","5128.24","5128.31","5128.45","5130.01","5130.26","5130.67","5140.01","5140.02","5145.89","5153.01","5160.01","5160.02","5200.01","5200.02","5200.79","5208.09","5211.08","5211.11","5214.03","5215.02","5301.01","5302.11","5303.02","5303.03","5305.01","5656.01","5656.04","5656.05","5657.01","5657.04","5657.05","5800.18","5802.01","6010.07","6010.14","6010.18","6010.26","6010.36","6010.45","6010.47","6012.05","6012.06","6020.74","6020.75","6031.06","6054.35","6072.01","6072.04","6072.13","6078.07","6538.22","6538.47","6538.49","6538.69","6538.77","8208.02","8503.01","8503.26","9008.13","9009.01","9009.02","9063.01","9063.03","9063.06","9063.17","9063.19","9064.96","9109.01","9122.01","9190.01","9202.01","9311.01","9997.41"]);
+
+let starred     = new Set([...JSON.parse(localStorage.getItem(LS_STARS) || '[]'), ...SEEDED_STARS]); // local cache, overwritten after API load
 const expanded  = new Set(); // units with sub-rows currently expanded
+const PROD_TABS = ["surround", "enclosure", "topper", "cabinet", "kiosk", "canopy_signbox", "clearance_barrier"];
+const PROD_TYPE_MAP = {"surround": "SURROUND", "enclosure": "ENCLOSURE", "topper": "TOPPER", "cabinet": "CABINET", "kiosk": "KIOSK", "canopy_signbox": "CANOPY SIGNBOX", "clearance_barrier": "CLEARANCE BARRIER"};
 let activeTab   = 'main';
-let sort        = { main:{ col:'unitNumber', asc:true }, pref:{ col:'unitNumber', asc:true } };
-let filtered    = { main:[], pref:[] };  // cached filtered lists
+let sort        = { main:{ col:'unitNumber', asc:true }, pref:{ col:'unitNumber', asc:true }, surround:{col:'unitNumber',asc:true}, enclosure:{col:'unitNumber',asc:true}, topper:{col:'unitNumber',asc:true}, cabinet:{col:'unitNumber',asc:true}, kiosk:{col:'unitNumber',asc:true}, canopy_signbox:{col:'unitNumber',asc:true}, clearance_barrier:{col:'unitNumber',asc:true} };
+let filtered    = { main:[], pref:[], surround:[], enclosure:[], topper:[], cabinet:[], kiosk:[], canopy_signbox:[], clearance_barrier:[] };  // cached filtered lists
 
 // ── Persist stars ────────────────────────────────────────────────────────────
 // ── Star persistence (JSONBin.io shared store) ───────────────────────────────
@@ -306,9 +396,15 @@ async function loadStarsFromServer() {
     const data = await res.json();
     const arr  = data?.record?.starred;
     if (Array.isArray(arr)) {
-      starred = new Set(arr);
-      localStorage.setItem(LS_STARS, JSON.stringify(arr));
+      // Merge server stars with seeded stars so seeded always included
+      const merged = new Set([...arr, ...SEEDED_STARS]);
+      starred = merged;
+      const mergedArr = [...merged];
+      localStorage.setItem(LS_STARS, JSON.stringify(mergedArr));
       document.getElementById('badge-pref').textContent = starred.size;
+      // If server didn't already have all seeded stars, push the merged set back
+      const serverMissingSeeds = [...SEEDED_STARS].some(u => !arr.includes(u));
+      if (serverMissingSeeds) syncStarsToServer(mergedArr);
     }
   } catch (err) {
     console.warn('Could not load shared stars, using local cache:', err);
@@ -352,6 +448,13 @@ function buildSidebar(p) {
 
 buildSidebar('main');
 buildSidebar('pref');
+buildSidebar('surround');
+buildSidebar('enclosure');
+buildSidebar('topper');
+buildSidebar('cabinet');
+buildSidebar('kiosk');
+buildSidebar('canopy_signbox');
+buildSidebar('clearance_barrier');
 
 // ── Tab switching ────────────────────────────────────────────────────────────
 function switchTab(name, btn) {
@@ -361,8 +464,8 @@ function switchTab(name, btn) {
   btn.classList.add('active');
   document.getElementById('tab-' + name).classList.add('active');
   closePanel();
-  // Render pref fresh every switch so stars are always current
   if (name === 'pref') applyFilters('pref');
+  else if (PROD_TABS.includes(name)) applyFilters(name);
 }
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
@@ -385,11 +488,22 @@ function switchTab(name, btn) {
 
     populateDropdowns(allProjects, 'main');
     applyFilters('main');
+    // Prod type tab badges show count of starred units of that type
+    function updateProdBadges() {
+      PROD_TABS.forEach(tab => {
+        const prodType = PROD_TYPE_MAP[tab];
+        const count = allProjects.filter(p => p.prodType === prodType && starred.has(p.unitNumber)).length;
+        const el = document.getElementById('badge-' + tab);
+        if (el) el.textContent = count.toLocaleString();
+      });
+    }
+    updateProdBadges();
 
     // Load shared stars from server (may update the locally-cached set)
     await loadStarsFromServer();
     // Re-render main so star states reflect server data
     applyFilters('main');
+    updateProdBadges();
   } catch(e) {
     document.getElementById('tc-main').innerHTML =
       `<div class="state-msg">⚠ Could not load projects.json<br><small>${e.message}</small></div>`;
@@ -450,10 +564,18 @@ function filterList(projects, f) {
 }
 
 function applyFilters(p) {
-  const pool = p === 'pref'
-    ? allProjects.filter(pr => starred.has(pr.unitNumber))
-    : allProjects;
-  if (p === 'pref') populateDropdowns(pool, 'pref');
+  let pool;
+  if (p === 'pref') {
+    pool = allProjects.filter(pr => starred.has(pr.unitNumber));
+    populateDropdowns(pool, 'pref');
+  } else if (PROD_TABS.includes(p)) {
+    const prodType = PROD_TYPE_MAP[p];
+    // Prod type tabs show only starred units of that product type
+    pool = allProjects.filter(pr => pr.prodType === prodType && starred.has(pr.unitNumber));
+    populateDropdowns(pool, p);
+  } else {
+    pool = allProjects;
+  }
   filtered[p] = filterList(pool, getFilters(p));
   renderTable(p);
 }
@@ -491,6 +613,21 @@ function toggleStar(unit, e) {
     btn.classList.toggle('starred', on);
     btn.title = on ? 'Remove from Preferred' : 'Add to Preferred';
   });
+
+  // Refresh pref tab count + list
+  document.getElementById('badge-pref').textContent = starred.size;
+  if (activeTab === 'pref') applyFilters('pref');
+  updateProdBadges();
+
+  // Also refresh the unit's product type tab so it reflects star state
+  const proj = projectMap[unit];
+  if (proj && proj.prodType) {
+    const tabKey = Object.keys(PROD_TYPE_MAP).find(k => PROD_TYPE_MAP[k] === proj.prodType);
+    if (tabKey) {
+      // Update badge count (starred units now appear in prod tab)
+      if (activeTab === tabKey) applyFilters(tabKey);
+    }
+  }
 }
 
 // ── Virtual table renderer ────────────────────────────────────────────────────
@@ -501,6 +638,13 @@ const OVERSCAN = 15;  // extra rows above/below viewport
 const vState = {
   main: { sorted:[], scrollEl:null },
   pref: { sorted:[], scrollEl:null },
+  surround: { sorted:[], scrollEl:null },
+  enclosure: { sorted:[], scrollEl:null },
+  topper: { sorted:[], scrollEl:null },
+  cabinet: { sorted:[], scrollEl:null },
+  kiosk: { sorted:[], scrollEl:null },
+  canopy_signbox: { sorted:[], scrollEl:null },
+  clearance_barrier: { sorted:[], scrollEl:null },
 };
 
 function renderTable(p) {
@@ -708,13 +852,6 @@ function showDetail(unit) {
       }).join('');
   }
 
-  const pp = `Projects/${encodeURIComponent(unit)}/Documentation/PDF`;
-  document.getElementById('pan-links').innerHTML = `
-    <div class="web2-links">
-      <a class="pdf-link pdf-link-internal" href="http://10.10.11.15/satm_pdm/#/folder/${pp}" target="_blank">🏢 Internal</a>
-      <a class="pdf-link pdf-link-external" href="http://50.206.38.114/satm_pdm/#/folder/${pp}" target="_blank">🌐 External</a>
-    </div>
-    <div class="pdf-path">PDM Web2 → ${esc(unit)} / Documentation / PDF</div>`;
 
   const files = p.files || [];
   document.getElementById('pan-files').innerHTML = files.length === 0
