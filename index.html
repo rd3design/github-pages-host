@@ -1085,7 +1085,7 @@ async function generatePdf(pages) {
     doc.rect(0, 0, W, H, 'F');
 
     // ── Left panel (dark card) ────────────────────────────────────────────
-    const leftW = 300;
+    const leftW = 190;
     setFill(SURF);
     doc.roundedRect(20, 20, leftW, H - 40, 8, 8, 'F');
 
@@ -1103,7 +1103,7 @@ async function generatePdf(pages) {
     }
 
     // ── Unit number (big) ─────────────────────────────────────────────────
-    setFont(42, 'bold', TEAL);
+    setFont(36, 'bold', TEAL);
     doc.text(proj.unitNumber || '—', 36, 130);
 
     // ── Product type badge ────────────────────────────────────────────────
@@ -1135,7 +1135,7 @@ async function generatePdf(pages) {
       doc.text(label.toUpperCase(), 36, sy);
       setFont(11, 'bold', TEXT);
       doc.text(String(val), 36, sy + 14);
-      sy += 36;
+      sy += 28;
     });
 
     // ── Features ──────────────────────────────────────────────────────────
@@ -1151,7 +1151,7 @@ async function generatePdf(pages) {
         setFill(TEAL);
         doc.circle(40, sy - 3.5, 2.5, 'F');
         doc.text(feat, 50, sy);
-        sy += 16;
+        sy += 13;
       });
     }
 
@@ -1164,15 +1164,15 @@ async function generatePdf(pages) {
       banks.forEach(bank => {
         setFont(9, 'normal', TEXT);
         doc.text('• ' + bank, 36, sy);
-        sy += 14;
+        sy += 12;
       });
     }
 
     // ── Right panel ───────────────────────────────────────────────────────
-    const rx = leftW + 40, rw = W - rx - 20;
+    const rx = leftW + 16, rw = W - rx - 20;
 
     // ── Rendering image placeholder / actual image ────────────────────────
-    const imgAreaH = 280;
+    const imgAreaH = 390;
     setFill(SURF2);
     doc.roundedRect(rx, 20, rw, imgAreaH, 8, 8, 'F');
 
@@ -1272,7 +1272,7 @@ async function generatePdf(pages) {
     }
 
     // ── Sell bullets ──────────────────────────────────────────────────────
-    const bulletsY = 20 + imgAreaH + 28;
+    const bulletsY = 20 + imgAreaH + 18;
     setFont(13, 'bold', TEXT);
     doc.text('Why Choose This Unit', rx, bulletsY);
 
@@ -1289,7 +1289,7 @@ async function generatePdf(pages) {
       // Word-wrap within right panel
       const lines = doc.splitTextToSize(bullet, rw - 28);
       doc.text(lines, rx + 18, by);
-      by += lines.length * 14 + 10;
+      by += lines.length * 13 + 7;
     });
 
     // ── Footer bar ────────────────────────────────────────────────────────
