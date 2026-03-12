@@ -181,8 +181,11 @@ td.col-star{text-align:center;padding:4px 6px}
   <button class="tab-btn" onclick="switchTab('kiosk',this)">
     KIOSK <span class="tab-badge" id="badge-kiosk">0</span>
   </button>
-  <button class="tab-btn" onclick="switchTab('canopy_signbox',this)">
-    CANOPY SIGNBOX <span class="tab-badge" id="badge-canopy_signbox">0</span>
+  <button class="tab-btn" onclick="switchTab('canopy',this)">
+    CANOPY <span class="tab-badge" id="badge-canopy">0</span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('signbox',this)">
+    SIGNBOX <span class="tab-badge" id="badge-signbox">0</span>
   </button>
   <button class="tab-btn" onclick="switchTab('clearance_barrier',this)">
     CLEARANCE BARRIER <span class="tab-badge" id="badge-clearance_barrier">0</span>
@@ -254,15 +257,25 @@ td.col-star{text-align:center;padding:4px 6px}
     </main>
   </div>
 </div>
-<div class="tab-page" id="tab-canopy_signbox">
+<div class="tab-page" id="tab-canopy">
   <div class="layout">
-    <aside id="sidebar-canopy_signbox"></aside>
+    <aside id="sidebar-canopy"></aside>
     <main>
-      <div class="toolbar"><div class="result-count" id="rc-canopy_signbox"></div></div>
-      <div id="tc-canopy_signbox" class="tc"><div class="state-msg"><div class="spinner"></div><div>Loading...</div></div></div>
+      <div class="toolbar"><div class="result-count" id="rc-canopy"></div></div>
+      <div id="tc-canopy" class="tc"><div class="state-msg"><div class="spinner"></div><div>Loading...</div></div></div>
     </main>
   </div>
 </div>
+<div class="tab-page" id="tab-signbox">
+  <div class="layout">
+    <aside id="sidebar-signbox"></aside>
+    <main>
+      <div class="toolbar"><div class="result-count" id="rc-signbox"></div></div>
+      <div id="tc-signbox" class="tc"><div class="state-msg"><div class="spinner"></div><div>Loading...</div></div></div>
+    </main>
+  </div>
+</div>
+
 <div class="tab-page" id="tab-clearance_barrier">
   <div class="layout">
     <aside id="sidebar-clearance_barrier"></aside>
@@ -322,11 +335,11 @@ const SEEDED_STARS = new Set(["1313.35","1318.01","1318.02","1318.03","1500.01",
 
 let starred     = new Set([...JSON.parse(localStorage.getItem(LS_STARS) || '[]'), ...SEEDED_STARS]); // local cache, overwritten after API load
 const expanded  = new Set(); // units with sub-rows currently expanded
-const PROD_TABS = ["surround", "enclosure", "topper", "cabinet", "kiosk", "canopy_signbox", "clearance_barrier"];
-const PROD_TYPE_MAP = {"surround": "SURROUND", "enclosure": "ENCLOSURE", "topper": "TOPPER", "cabinet": "CABINET", "kiosk": "KIOSK", "canopy_signbox": "CANOPY SIGNBOX", "clearance_barrier": "CLEARANCE BARRIER"};
+const PROD_TABS = ["surround", "enclosure", "topper", "cabinet", "kiosk", "canopy", "signbox", "clearance_barrier"];
+const PROD_TYPE_MAP = {"surround": "SURROUND", "enclosure": "ENCLOSURE", "topper": "TOPPER", "cabinet": "CABINET", "kiosk": "KIOSK", "canopy": "CANOPY", "signbox": "SIGNBOX", "clearance_barrier": "CLEARANCE BARRIER"};
 let activeTab   = 'main';
-let sort        = { main:{ col:'unitNumber', asc:true }, pref:{ col:'unitNumber', asc:true }, surround:{col:'unitNumber',asc:true}, enclosure:{col:'unitNumber',asc:true}, topper:{col:'unitNumber',asc:true}, cabinet:{col:'unitNumber',asc:true}, kiosk:{col:'unitNumber',asc:true}, canopy_signbox:{col:'unitNumber',asc:true}, clearance_barrier:{col:'unitNumber',asc:true} };
-let filtered    = { main:[], pref:[], surround:[], enclosure:[], topper:[], cabinet:[], kiosk:[], canopy_signbox:[], clearance_barrier:[] };  // cached filtered lists
+let sort        = { main:{ col:'unitNumber', asc:true }, pref:{ col:'unitNumber', asc:true }, surround:{col:'unitNumber',asc:true}, enclosure:{col:'unitNumber',asc:true}, topper:{col:'unitNumber',asc:true}, cabinet:{col:'unitNumber',asc:true}, kiosk:{col:'unitNumber',asc:true}, canopy:{col:'unitNumber',asc:true}, signbox:{col:'unitNumber',asc:true}, clearance_barrier:{col:'unitNumber',asc:true} };
+let filtered    = { main:[], pref:[], surround:[], enclosure:[], topper:[], cabinet:[], kiosk:[], canopy:[], signbox:[], clearance_barrier:[] };  // cached filtered lists
 
 // ── Persist stars ────────────────────────────────────────────────────────────
 // ── Star persistence (JSONBin.io shared store) ───────────────────────────────
@@ -453,7 +466,8 @@ buildSidebar('enclosure');
 buildSidebar('topper');
 buildSidebar('cabinet');
 buildSidebar('kiosk');
-buildSidebar('canopy_signbox');
+buildSidebar('canopy');
+buildSidebar('signbox');
 buildSidebar('clearance_barrier');
 
 // ── Tab switching ────────────────────────────────────────────────────────────
@@ -643,7 +657,8 @@ const vState = {
   topper: { sorted:[], scrollEl:null },
   cabinet: { sorted:[], scrollEl:null },
   kiosk: { sorted:[], scrollEl:null },
-  canopy_signbox: { sorted:[], scrollEl:null },
+  canopy: { sorted:[], scrollEl:null },
+  signbox: { sorted:[], scrollEl:null },
   clearance_barrier: { sorted:[], scrollEl:null },
 };
 
