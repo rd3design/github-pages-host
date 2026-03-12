@@ -1197,31 +1197,56 @@ async function generatePdf(pages) {
           });
         }
 
-        // Route PDF through Netlify proxy to avoid Dropbox CORS restrictions
+        // Try multiple URL strategies in order until one works:
+        // 1. Netlify proxy (works once deployed, no CORS)
+        // 2. Dropbox ?raw=1 direct (sometimes works without proxy)
+        // 3. dl.dropboxusercontent.com direct
+        const rawUrl = pdfUrl
+          .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
+          .replace('?dl=0', '?raw=1').replace('&dl=0', '&raw=1')
+          .replace('?dl=1', '?raw=1').replace('&dl=1', '&raw=1');
         const proxyUrl = '/.netlify/functions/pdf-proxy?url=' + encodeURIComponent(pdfUrl);
-        const pdfBytes = await Promise.race([
-          fetch(proxyUrl).then(r => {
-            if (!r.ok) throw new Error(`Proxy ${r.status}`);
-            return r.arrayBuffer();
-          }),
-          new Promise((_,rej) => setTimeout(() => rej(new Error('PDF fetch timeout')), 12000))
-        ]);
+
+        let pdfBytes = null;
+        const tryFetch = async (url) => {
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.arrayBuffer();
+        };
+
+        // Try proxy first, fall back to raw URL
+        try {
+          pdfBytes = await Promise.race([
+            tryFetch(proxyUrl),
+            new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+          ]);
+        } catch(e1) {
+          console.warn('Proxy fetch failed, trying raw URL:', e1.message);
+          pdfBytes = await Promise.race([
+            tryFetch(rawUrl),
+            new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+          ]);
+        }
 
         const pdfDoc2 = await window.pdfjsLib.getDocument({ data: pdfBytes }).promise;
         const page    = await pdfDoc2.getPage(1);
 
-        // Render at 2x scale for crispness, then fit into the image area
+        // Render at 2x scale for crispness
         const scale    = 2.0;
         const viewport = page.getViewport({ scale });
         const canvas   = document.createElement('canvas');
         canvas.width   = viewport.width;
         canvas.height  = viewport.height;
-        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        const ctx = canvas.getContext('2d');
+        // White background so engineering drawing is visible on dark PDF
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport }).promise;
 
         renderedPdfImg = canvas.toDataURL('image/jpeg', 0.88);
 
       } catch(e) {
-        console.warn('PDF render failed for', proj.unitNumber, e.message);
+        console.warn('PDF render failed for', proj.unitNumber, ':', e.message);
       }
     }
 
