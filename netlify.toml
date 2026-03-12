@@ -1,4 +1,2 @@
 [build]
   functions = "netlify/functions"
-
-  netlify.toml    ← new
