@@ -1197,11 +1197,14 @@ async function generatePdf(pages) {
           });
         }
 
-        // Fetch PDF bytes (Dropbox direct download)
-        const dlUrl = pdfUrl.replace('?dl=0','?dl=1').replace('&dl=0','&dl=1');
+        // Route PDF through Netlify proxy to avoid Dropbox CORS restrictions
+        const proxyUrl = '/.netlify/functions/pdf-proxy?url=' + encodeURIComponent(pdfUrl);
         const pdfBytes = await Promise.race([
-          fetch(dlUrl).then(r => r.arrayBuffer()),
-          new Promise((_,rej) => setTimeout(() => rej(new Error('PDF fetch timeout')), 8000))
+          fetch(proxyUrl).then(r => {
+            if (!r.ok) throw new Error(`Proxy ${r.status}`);
+            return r.arrayBuffer();
+          }),
+          new Promise((_,rej) => setTimeout(() => rej(new Error('PDF fetch timeout')), 12000))
         ]);
 
         const pdfDoc2 = await window.pdfjsLib.getDocument({ data: pdfBytes }).promise;

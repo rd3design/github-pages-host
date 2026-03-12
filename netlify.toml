@@ -1,0 +1,15 @@
+[build]
+  functions = "netlify/functions"
+```
+
+That's the whole file. Once it's there, push it along with `pdf-proxy.js` and Netlify will pick up the functions folder automatically.
+
+Your repo structure should look like:
+```
+github-pages-host\
+  netlify\
+    functions\
+      pdf-proxy.js
+  index.html
+  projects.json
+  netlify.toml    ← new
