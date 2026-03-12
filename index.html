@@ -67,7 +67,7 @@ main{padding:18px 22px;overflow:hidden;display:flex;flex-direction:column;min-he
 .table-wrap::-webkit-scrollbar-thumb:hover{background:var(--teal)}
 table{width:max-content;min-width:100%;border-collapse:collapse;font-size:12px}
 thead{background:var(--surface);border-bottom:1px solid var(--border2)}
-th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:10px;text-align:left;user-select:none;white-space:nowrap;background:var(--surface);position:relative;overflow:hidden;text-overflow:ellipsis}
+th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:10px;text-align:left;user-select:none;white-space:nowrap;background:var(--surface);position:sticky;top:0;z-index:3;overflow:hidden;text-overflow:ellipsis}
 th.sortable{cursor:pointer}
 th.sortable:hover{color:var(--text)}
 th.sorted{color:var(--teal)}
@@ -218,9 +218,6 @@ const COLS = [
   { key:'unitNumber', label:'Unit #',        w:90  },
   { key:'fileCount',  label:'P-Line',        w:70  },
   { key:'prodType',   label:'Product Type',  w:130 },
-  { key:'client',     label:'Client',        w:130 },
-  { key:'drawnBy',    label:'Drawn By',      w:90  },
-  { key:'drawnDate',  label:'Drawn Date',    w:90  },
   { key:'atm',        label:'ATM',           w:90  },
   { key:'height',     label:'H',             w:60  },
   { key:'width',      label:'W',             w:60  },
@@ -328,9 +325,6 @@ function buildSidebar(p) {
       </div>
     </div>
     <div><div class="filter-label">Product Type</div><select id="s-prodtype-${p}"><option value="">All</option></select></div>
-    <div><div class="filter-label">Client</div><select id="s-client-${p}"><option value="">All</option></select></div>
-    <div><div class="filter-label">Drawn By</div><select id="s-drawnby-${p}"><option value="">All</option></select></div>
-    <div><div class="filter-label">Drawn Date</div><select id="s-drawndate-${p}"><option value="">All</option></select></div>
     <div><div class="filter-label">ATM</div><select id="s-atm-${p}"><option value="">All</option></select></div>
     <div><div class="filter-label">Height</div><select id="s-height-${p}"><option value="">All</option></select></div>
     <div><div class="filter-label">Width</div><select id="s-width-${p}"><option value="">All</option></select></div>
@@ -402,9 +396,8 @@ function switchTab(name, btn) {
 })();
 
 // ── Dropdowns ────────────────────────────────────────────────────────────────
-const FILTER_KEYS = ['prodtype','client','drawnby','drawndate','atm','height','width','depth'];
-const KEY_MAP = { prodtype:'prodType', client:'client', drawnby:'drawnBy',
-                  drawndate:'drawnDate', atm:'atm', height:'height', width:'width', depth:'depth' };
+const FILTER_KEYS = ['prodtype','atm','height','width','depth'];
+const KEY_MAP = { prodtype:'prodType', atm:'atm', height:'height', width:'width', depth:'depth' };
 
 function populateDropdowns(projects, p) {
   FILTER_KEYS.forEach(k => {
@@ -433,8 +426,7 @@ function getFilters(p) {
   });
   return {
     search:   (document.getElementById('s-search-' + p) || {}).value?.trim().toLowerCase() || '',
-    prodType: g('prodtype'), client:g('client'), drawnBy:g('drawnby'),
-    drawnDate:g('drawndate'), atm:g('atm'), height:g('height'), width:g('width'), depth:g('depth'),
+    prodType: g('prodtype'), atm:g('atm'), height:g('height'), width:g('width'), depth:g('depth'),
     features: feats,
   };
 }
@@ -444,9 +436,6 @@ function filterList(projects, f) {
     if (f.search && ![p.unitNumber,p.partNo,p.prodType,p.client,p.atm,p.drawnBy]
           .some(v => v?.toLowerCase().includes(f.search))) return false;
     if (f.prodType  && p.prodType  !== f.prodType)  return false;
-    if (f.client    && p.client    !== f.client)    return false;
-    if (f.drawnBy   && p.drawnBy   !== f.drawnBy)   return false;
-    if (f.drawnDate && p.drawnDate !== f.drawnDate) return false;
     if (f.atm       && p.atm       !== f.atm)       return false;
     if (f.height    && p.height    !== f.height)    return false;
     if (f.width     && p.width     !== f.width)     return false;
@@ -476,7 +465,7 @@ function clearFilters(p) {
 }
 
 // ── Expand/collapse TLPN sub-rows ────────────────────────────────────────────
-function toggleExpand(unit, btn) {
+function toggleExpand(unit, btn, e) { if(e) e.stopPropagation();
   if (expanded.has(unit)) {
     expanded.delete(unit);
     btn.classList.remove('open');
@@ -606,12 +595,9 @@ function paintRows(p) {
     const u  = esc(r.unitNumber);
     rb += `<tr onclick="showDetail('${u}')">` +
       `<td class="col-star"><button class="star-btn${st?' starred':''}" data-unit="${u}" onclick="toggleStar('${u}',event)" title="${st?'Remove from Preferred':'Add to Preferred'}">★</button></td>` +
-      `<td class="col-unit">${u||dash}</td>` +
+      `<td class="col-unit"><button class="expand-btn${expanded.has(r.unitNumber)?' open':''}" onclick="toggleExpand('${u}',this,event)" title="Show TLPNs">▶</button> ${u||dash}</td>` +
       `<td><span class="badge badge-count">${r.fileCount}</span></td>` +
       `<td>${r.prodType?`<span class="badge badge-type">${esc(r.prodType)}</span>`:dash}</td>` +
-      `<td>${esc(r.client)||dash}</td>` +
-      `<td>${esc(r.drawnBy)||dash}</td>` +
-      `<td class="col-muted">${esc(r.drawnDate)||dash}</td>` +
       `<td style="font-size:11px">${esc(r.atm)||dash}</td>` +
       `<td class="col-dim">${esc(r.height)||dash}</td>` +
       `<td class="col-dim">${esc(r.width)||dash}</td>` +
@@ -628,6 +614,29 @@ function paintRows(p) {
   if (bottomPad > 0) rb += `<tr style="height:${bottomPad}px"><td colspan="${COLS.length}"></td></tr>`;
 
   tbody.innerHTML = rb;
+
+  // Inject sub-rows for expanded units
+  if (expanded.size) {
+    const colSpanFeat = COLS.length - 2;
+    expanded.forEach(unit => {
+      const proj = projectMap[unit];
+      if (!proj || !proj.tlpns || !proj.tlpns.length) return;
+      const anchorRow = tbody.querySelector(`tr td.col-unit button[onclick*="'${unit}'"]`)?.closest('tr');
+      if (!anchorRow) return;
+      proj.tlpns.forEach(t => {
+        const isObj   = typeof t === 'object' && t !== null;
+        const name    = isObj ? (t.tlpn  || '') : t;
+        const bank    = isObj ? (t.bankName || '') : '';
+        const url     = isObj ? (t.renderUrl || '') : '';
+        const linkHtml = url ? `<a class="render-link" href="${url}" target="_blank" onclick="event.stopPropagation()">View Rendering</a>` : '';
+        const tr = document.createElement('tr');
+        tr.className = 'sub-row';
+        tr.dataset.unit = unit;
+        tr.innerHTML = `<td></td><td colspan="${colSpanFeat}"><span class="tlpn-name">${esc(name)}</span>${bank?`<span class="bank-name">${esc(bank)}</span>`:''}${linkHtml}</td>`;
+        anchorRow.insertAdjacentElement('afterend', tr);
+      });
+    });
+  }
 }
 
 function sortBy(col, p) {
