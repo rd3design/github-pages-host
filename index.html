@@ -382,9 +382,9 @@ let filtered    = { main:[], pref:[], surround:[], enclosure:[], topper:[], cabi
 // ── Star persistence (JSONBin.io shared store) ───────────────────────────────
 // Setup: create a free account at jsonbin.io, make a bin with {"starred":[]},
 // then paste your Master Key and Bin ID into the two constants below.
-const JSONBIN_KEY    = 'YOUR_MASTER_KEY_HERE';   // X-Master-Key header
-const ANTHROPIC_KEY  = '';  // ← paste your sk-ant-... key here to enable AI bullet copy
-const OPENAI_KEY     = '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';  // ← paste your OpenAI key here to enable AI image branding (sk-proj-...)
+const JSONBIN_KEY    = '';   // JSONBin master key — set locally if using shared stars
+// API keys are stored as Netlify env vars (ANTHROPIC_KEY, OPENAI_KEY) — never in client code.
+  // All AI calls go through /.netlify/functions/ proxy endpoints.
 const JSONBIN_BIN_ID = 'YOUR_BIN_ID_HERE';       // the bin ID from the URL
 const JSONBIN_URL    = `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`;
 
@@ -1095,15 +1095,10 @@ ${tlpnBanks ? `Deployed at: ${tlpnBanks}` : ''}
 Respond with ONLY a JSON array of 4 strings, no markdown, no preamble. Example: ["Bullet one","Bullet two","Bullet three","Bullet four"]`;
 
   try {
-    if (!ANTHROPIC_KEY) { console.warn('[Deck] ANTHROPIC_KEY not set — using static bullets'); return null; }
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    // Anthropic call goes through server proxy — no client key needed
+    const res = await fetch('/.netlify/functions/anthropic-proxy', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 300,
@@ -1194,10 +1189,10 @@ async function applyBrandingToImage(drawingB64, branding, proj) {
     form.append('image[]', logoPng, 'customer_logo.png');
   }
 
-  const response = await fetch('https://api.openai.com/v1/images/edits', {
+  // Route through Netlify proxy — key never touches the browser
+  const response = await fetch('/.netlify/functions/openai-image', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${OPENAI_KEY}` },
-    // Do NOT set Content-Type — browser sets it with correct boundary for FormData
+    // Do NOT set Content-Type — browser sets multipart boundary automatically
     body: form,
   });
 
