@@ -215,6 +215,7 @@ const DATA_URL   = './projects.json';
 const LS_STARS   = 'pdm_starred_v1';
 const COLS = [
   { key:'star',       label:'★',            w:44,  noSort:true },
+  { key:'expand',     label:'',             w:30,  noSort:true },
   { key:'unitNumber', label:'Unit #',        w:90  },
   { key:'fileCount',  label:'P-Line',        w:70  },
   { key:'prodType',   label:'Product Type',  w:130 },
@@ -595,7 +596,8 @@ function paintRows(p) {
     const u  = esc(r.unitNumber);
     rb += `<tr onclick="showDetail('${u}')">` +
       `<td class="col-star"><button class="star-btn${st?' starred':''}" data-unit="${u}" onclick="toggleStar('${u}',event)" title="${st?'Remove from Preferred':'Add to Preferred'}">★</button></td>` +
-      `<td class="col-unit">${r.tlpns&&r.tlpns.length?`<button class="expand-btn${expanded.has(r.unitNumber)?' open':''}" onclick="toggleExpand('${u}',this,event)" title="Show TLPNs">▶</button> `:''} ${u||dash}</td>` +
+      `<td style="text-align:center;padding:0 2px">${r.tlpns&&r.tlpns.length?`<button class="expand-btn${expanded.has(r.unitNumber)?' open':''}" onclick="toggleExpand('${u}',this,event)" title="Show TLPNs">▶</button>`:''}</td>` +
+      `<td class="col-unit">${u||dash}</td>` +
       `<td><span class="badge badge-count">${r.fileCount}</span></td>` +
       `<td>${r.prodType?`<span class="badge badge-type">${esc(r.prodType)}</span>`:dash}</td>` +
       `<td style="font-size:11px">${esc(r.atm)||dash}</td>` +
