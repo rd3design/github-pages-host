@@ -955,7 +955,7 @@ async function buildSalesDeck(tab) {
     for (let i = 0; i < units.length; i++) {
       if (_deckCancelled) break;
       const proj = units[i];
-      setDeckStatus(`Writing copy for ${proj.unitNumber} (${i+1}/${units.length})…`, Math.round((i / units.length) * 85));
+      setDeckStatus(`Unit ${i+1}/${units.length}: writing copy for ${proj.unitNumber}…`, Math.round((i / units.length) * 80));
       const bullets = await getAiBullets(proj);
       if (_deckCancelled) break;
       pages.push({ proj, bullets });
@@ -963,7 +963,7 @@ async function buildSalesDeck(tab) {
 
     if (_deckCancelled) { setDeckStatus('Cancelled.', 0); return; }
 
-    setDeckStatus('Building PDF…', 90);
+    setDeckStatus('Rendering PDF drawings and building document…', 88);
     await new Promise(r => setTimeout(r, 50)); // let UI update
     const pdfDataUrl = await generatePdf(pages);
 
@@ -1176,37 +1176,71 @@ async function generatePdf(pages) {
     setFill(SURF2);
     doc.roundedRect(rx, 20, rw, imgAreaH, 8, 8, 'F');
 
-    // Try to load rendering image
-    const tlpnWithUrl = (proj.tlpns||[]).find(t => typeof t==='object' && t.renderUrl);
-    if (tlpnWithUrl) {
+    // Render first page of PDF using PDF.js
+    const pdfUrl = (proj.files || []).find(f => f.pdfUrl)?.pdfUrl || null;
+    let renderedPdfImg = null;
+
+    if (pdfUrl) {
       try {
-        // Load image via canvas to avoid CORS issues
-        const imgEl = await new Promise((res, rej) => {
-          const img = new Image();
-          img.crossOrigin = 'anonymous';
-          img.onload = () => res(img);
-          img.onerror = rej;
-          img.src = tlpnWithUrl.renderUrl;
-          setTimeout(() => rej(new Error('timeout')), 4000);
-        });
-        const canvas = document.createElement('canvas');
-        canvas.width = imgEl.naturalWidth; canvas.height = imgEl.naturalHeight;
-        canvas.getContext('2d').drawImage(imgEl, 0, 0);
-        const imgData = canvas.toDataURL('image/jpeg', 0.85);
-        // Fit image maintaining aspect ratio
-        const ar = imgEl.naturalWidth / imgEl.naturalHeight;
-        let iw = rw - 32, ih = imgAreaH - 32;
-        if (iw / ih > ar) iw = ih * ar; else ih = iw / ar;
-        const ix = rx + (rw - iw) / 2, iy = 20 + (imgAreaH - ih) / 2;
-        doc.addImage(imgData, 'JPEG', ix, iy, iw, ih);
+        // Load PDF.js on demand
+        if (!window.pdfjsLib) {
+          await new Promise((res, rej) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+            s.onload = () => {
+              window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+              res();
+            };
+            s.onerror = rej;
+            document.head.appendChild(s);
+          });
+        }
+
+        // Fetch PDF bytes (Dropbox direct download)
+        const dlUrl = pdfUrl.replace('?dl=0','?dl=1').replace('&dl=0','&dl=1');
+        const pdfBytes = await Promise.race([
+          fetch(dlUrl).then(r => r.arrayBuffer()),
+          new Promise((_,rej) => setTimeout(() => rej(new Error('PDF fetch timeout')), 8000))
+        ]);
+
+        const pdfDoc2 = await window.pdfjsLib.getDocument({ data: pdfBytes }).promise;
+        const page    = await pdfDoc2.getPage(1);
+
+        // Render at 2x scale for crispness, then fit into the image area
+        const scale    = 2.0;
+        const viewport = page.getViewport({ scale });
+        const canvas   = document.createElement('canvas');
+        canvas.width   = viewport.width;
+        canvas.height  = viewport.height;
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+        renderedPdfImg = canvas.toDataURL('image/jpeg', 0.88);
+
       } catch(e) {
-        // Fallback: no image available text
-        setFont(11, 'normal', MUTED);
-        doc.text('Rendering not available', rx + rw/2, 20 + imgAreaH/2, { align: 'center' });
+        console.warn('PDF render failed for', proj.unitNumber, e.message);
       }
+    }
+
+    if (renderedPdfImg) {
+      // Fit rendered PDF page into image area maintaining aspect ratio
+      const tmpImg = await new Promise(res => {
+        const img = new Image(); img.onload = () => res(img); img.src = renderedPdfImg;
+      });
+      const ar = tmpImg.naturalWidth / tmpImg.naturalHeight;
+      let iw = rw - 32, ih = imgAreaH - 32;
+      if (iw / ih > ar) iw = ih * ar; else ih = iw / ar;
+      const ix = rx + (rw - iw) / 2, iy = 20 + (imgAreaH - ih) / 2;
+      doc.addImage(renderedPdfImg, 'JPEG', ix, iy, iw, ih);
     } else {
+      // Fallback placeholder
       setFont(11, 'normal', MUTED);
-      doc.text('Rendering not available', rx + rw/2, 20 + imgAreaH/2, { align: 'center' });
+      doc.text(pdfUrl ? 'Preview unavailable — see PDF link' : 'No drawing available',
+               rx + rw/2, 20 + imgAreaH/2, { align: 'center' });
+      if (pdfUrl) {
+        setFont(9, 'normal', TEAL);
+        doc.textWithLink('Open PDF ↗', rx + rw/2, 20 + imgAreaH/2 + 18, { url: pdfUrl, align: 'center' });
+      }
     }
 
     // ── Sell bullets ──────────────────────────────────────────────────────
