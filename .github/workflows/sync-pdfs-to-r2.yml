@@ -1,19 +1,21 @@
 name: Sync PDFs to Cloudflare R2
 
-# Manual trigger only — run from GitHub Actions tab when needed
 on:
   workflow_dispatch:
     inputs:
-      dry_run: true
-        description: 'Dry run (fetch but do not upload, just report)'
+      dry_run:
+        description: 'Dry run - fetch but do not upload, just report'
         required: false
         default: 'false'
         type: choice
-        options: ['false', 'true']
-      limit:5
+        options:
+          - 'false'
+          - 'true'
+      limit:
         description: 'Max PDFs to process (0 = all)'
         required: false
         default: '0'
+        type: string
 
 jobs:
   sync:
@@ -30,15 +32,15 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install @aws-sdk/client-s3 node-fetch
+        run: npm install @aws-sdk/client-s3
 
       - name: Run PDF sync
         env:
-          R2_ACCOUNT_ID:    ${{ 3571990eb36c9969785e879f6a3d01b3 }}
-          R2_ACCESS_KEY_ID: ${{ 34dc98543c6ece5496fbf4861d9b9171 }}
-          R2_SECRET_KEY:    ${{ b8848de6ef95a09c91bef24fe5b36142fdfcc9d7ca27fee905ba99ef9c1e1c8c }}
-          R2_BUCKET:        ${{ plines }}
-          R2_PUBLIC_URL:    ${{ https://pub-076d8f21fd444f3c8b8bd0b8bc205825.r2.dev }}
+          R2_ACCOUNT_ID:    ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_KEY:    ${{ secrets.R2_SECRET_KEY }}
+          R2_BUCKET:        ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_URL:    ${{ secrets.R2_PUBLIC_URL }}
           DRY_RUN:          ${{ github.event.inputs.dry_run }}
           LIMIT:            ${{ github.event.inputs.limit }}
         run: node .github/scripts/sync-pdfs.js
@@ -46,7 +48,7 @@ jobs:
       - name: Commit updated projects.json
         if: ${{ github.event.inputs.dry_run != 'true' }}
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add projects.json
           git diff --staged --quiet || git commit -m "chore: update R2 PDF links [skip ci]"
