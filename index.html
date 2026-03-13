@@ -1389,7 +1389,10 @@ async function generatePdf(pages, branding) {
     doc.roundedRect(rx, 20, rw, imgAreaH, 8, 8, 'F');
 
     // Render first page of PDF using PDF.js
-    const pdfUrl = (proj.files || []).find(f => f.pdfUrl)?.pdfUrl || null;
+    // Prefer R2 URL (no CORS) over Dropbox URL (needs proxy)
+    const fileEntry = (proj.files || []).find(f => f.r2Url || f.pdfUrl);
+    const pdfUrl    = fileEntry?.r2Url || fileEntry?.pdfUrl || null;
+    const useProxy  = pdfUrl && !fileEntry?.r2Url; // only proxy Dropbox links
     let renderedPdfImg = null;
     console.log(`[Deck] ${proj.unitNumber} — pdfUrl: ${pdfUrl ? pdfUrl.slice(0,60)+'…' : 'NONE'}`);
 
@@ -1427,25 +1430,30 @@ async function generatePdf(pages, branding) {
           return r.arrayBuffer();
         };
 
-        // Try proxy first, fall back to raw URL
-        try {
-          console.log('[Deck] Trying proxy:', proxyUrl.slice(0,80));
+        if (!useProxy) {
+          // R2 direct URL — no CORS issues, fetch directly
+          console.log('[Deck] Fetching from R2:', pdfUrl.slice(0, 80));
           pdfBytes = await Promise.race([
-            tryFetch(proxyUrl),
-            new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+            tryFetch(pdfUrl),
+            new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 15000))
           ]);
-          console.log('[Deck] Proxy fetch succeeded, bytes:', pdfBytes.byteLength);
-        } catch(e1) {
-          console.warn('[Deck] Proxy fetch failed:', e1.message, '— trying raw URL');
+          console.log('[Deck] R2 fetch succeeded, bytes:', pdfBytes.byteLength);
+        } else {
+          // Dropbox URL — try proxy first, then raw fallback
           try {
+            console.log('[Deck] Trying proxy:', proxyUrl.slice(0,80));
+            pdfBytes = await Promise.race([
+              tryFetch(proxyUrl),
+              new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
+            ]);
+            console.log('[Deck] Proxy fetch succeeded, bytes:', pdfBytes.byteLength);
+          } catch(e1) {
+            console.warn('[Deck] Proxy fetch failed:', e1.message, '— trying raw URL');
             pdfBytes = await Promise.race([
               tryFetch(rawUrl),
               new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
             ]);
             console.log('[Deck] Raw URL fetch succeeded, bytes:', pdfBytes.byteLength);
-          } catch(e2) {
-            console.warn('[Deck] Raw URL also failed:', e2.message);
-            throw e2;
           }
         }
 
