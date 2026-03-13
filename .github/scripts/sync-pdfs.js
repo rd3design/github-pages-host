@@ -101,7 +101,9 @@ async function main() {
     process.exit(1);
   }
 
-  const projects = JSON.parse(fs.readFileSync(projectsPath, 'utf8'));
+  const raw = JSON.parse(fs.readFileSync(projectsPath, 'utf8'));
+  // projects.json shape: { stats: {...}, projects: [...] }
+  const projects = Array.isArray(raw) ? raw : (raw.projects || []);
   console.log(`📦 Loaded ${projects.length} projects from projects.json`);
 
   if (DRY_RUN) console.log('🔍 DRY RUN — no uploads will happen');
@@ -171,7 +173,9 @@ async function main() {
   console.log(`\n📊 Done: ${uploaded} uploaded, ${skipped} skipped, ${failed} failed`);
 
   if (!DRY_RUN && uploaded > 0) {
-    fs.writeFileSync(projectsPath, JSON.stringify(projects, null, 2));
+    // Write back preserving the original wrapper shape
+    const output = Array.isArray(raw) ? projects : { ...raw, projects };
+    fs.writeFileSync(projectsPath, JSON.stringify(output, null, 2));
     console.log('💾 projects.json updated with R2 URLs');
   }
 }
