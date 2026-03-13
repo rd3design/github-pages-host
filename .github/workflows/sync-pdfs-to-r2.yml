@@ -36,11 +36,11 @@ jobs:
 
       - name: Run PDF sync
         env:
-          R2_ACCOUNT_ID:    "${{ 3571990eb36c9969785e879f6a3d01b3 }}"
-          R2_ACCESS_KEY_ID: "${{ 12f36e747a3b7c7ad92b1730ff7e830d }}"
-          R2_SECRET_KEY:    "${{ b9aefb2675744f350cdefda0a0302a2a92a6397e93003195eb0e00c94f27545a }}"
-          R2_BUCKET:        "${{ plines }}"
-          R2_PUBLIC_URL:    "${{ https://pub-076d8f21fd444f3c8b8bd0b8bc205825.r2.dev }}"
+          R2_ACCOUNT_ID:    "${{ secrets.R2_ACCOUNT_ID }}"
+          R2_ACCESS_KEY_ID: "${{ secrets.R2_ACCESS_KEY_ID }}"
+          R2_SECRET_KEY:    "${{ secrets.R2_SECRET_KEY }}"
+          R2_BUCKET:        "${{ secrets.R2_BUCKET }}"
+          R2_PUBLIC_URL:    "${{ secrets.R2_PUBLIC_URL }}"
           DRY_RUN:          "${{ github.event.inputs.dry_run }}"
           LIMIT:            "${{ github.event.inputs.limit }}"
         run: node .github/scripts/sync-pdfs.js
