@@ -21,6 +21,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);height:100vh
 .top-bar{background:#0d1017;border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:52px;flex-shrink:0;z-index:110}
 .logo img{height:30px;width:auto}
 .header-stats{display:flex;gap:20px;align-items:center}
+.header-nav{display:flex;gap:4px;align-items:center}
+.header-nav a{font-family:var(--sans);font-size:12px;font-weight:600;color:var(--muted);text-decoration:none;padding:5px 12px;border-radius:6px;transition:all .15s;letter-spacing:.03em}
+.header-nav a:hover{color:var(--text);background:var(--surface2)}
+.header-nav a.active{color:var(--teal);background:rgba(0,196,180,.08)}
 .stat-pill{font-size:12px;color:var(--muted)}
 .stat-pill b{color:var(--teal);font-weight:600}
 
@@ -191,6 +195,10 @@ td.col-star{text-align:center;padding:4px 6px}
 
 <div class="top-bar">
   <div class="logo"><img id="logo-img" alt="Sterling ATM"></div>
+  <nav class="header-nav">
+    <a href="#" class="active">PDM Indexer</a>
+    <a href="#" onclick="return false;" title="Coming soon" style="opacity:.45;cursor:default">Production</a>
+  </nav>
   <div class="header-stats" id="header-stats"><span class="stat-pill">Loading...</span></div>
 </div>
 
