@@ -108,16 +108,33 @@ async function main() {
 
   if (DRY_RUN) console.log('🔍 DRY RUN — no uploads will happen');
 
+  // Diagnostic: sample first project structure
+  if (projects.length > 0) {
+    const sample = projects[0];
+    console.log('🔎 Sample project keys:', Object.keys(sample).join(', '));
+    console.log('🔎 Sample files count:', (sample.files || []).length);
+    if ((sample.files || []).length > 0) {
+      console.log('🔎 Sample file keys:', Object.keys(sample.files[0]).join(', '));
+      console.log('🔎 Sample pdfUrl:', sample.files[0].pdfUrl || 'NONE');
+      console.log('🔎 Sample r2Url:', sample.files[0].r2Url || 'NONE');
+    }
+  }
+
   // Collect all unique PDF links across all projects
   const tasks = [];
+  let totalFiles = 0, withPdfUrl = 0, alreadyR2 = 0;
   for (const proj of projects) {
     for (const file of (proj.files || [])) {
+      totalFiles++;
+      if (file.pdfUrl) withPdfUrl++;
+      if (file.r2Url) alreadyR2++;
       if (file.pdfUrl && !file.r2Url) {
         tasks.push({ proj, file });
       }
     }
   }
 
+  console.log(`📊 Total files: ${totalFiles}, with pdfUrl: ${withPdfUrl}, already have r2Url: ${alreadyR2}`);
   console.log(`🔗 Found ${tasks.length} PDFs without R2 URLs`);
 
   const toProcess = LIMIT > 0 ? tasks.slice(0, LIMIT) : tasks;
