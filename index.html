@@ -1396,13 +1396,11 @@ async function generatePdf(pages, branding) {
     setFill(SURF2);
     doc.roundedRect(rx, 20, rw, imgAreaH, 8, 8, 'F');
 
-    // Render first page of PDF using PDF.js
-    // Prefer R2 URL (no CORS) over Dropbox URL (needs proxy)
-    const fileEntry = (proj.files || []).find(f => f.r2Url || f.pdfUrl);
-    const pdfUrl    = fileEntry?.r2Url || fileEntry?.pdfUrl || null;
-    const useProxy  = pdfUrl && !fileEntry?.r2Url; // only proxy Dropbox links
+    // Render first page of PDF using PDF.js — R2 only, no Dropbox
+    const fileEntry = (proj.files || []).find(f => f.r2Url);
+    const pdfUrl    = fileEntry?.r2Url || null;
     let renderedPdfImg = null;
-    console.log(`[Deck] ${proj.unitNumber} — pdfUrl: ${pdfUrl ? pdfUrl.slice(0,60)+'…' : 'NONE'}`);
+    console.log(`[Deck] ${proj.unitNumber} — r2Url: ${pdfUrl ? pdfUrl.slice(0,80) : 'NONE'}`);
 
     if (pdfUrl) {
       try {
@@ -1421,49 +1419,19 @@ async function generatePdf(pages, branding) {
           });
         }
 
-        // Try multiple URL strategies in order until one works:
-        // 1. Netlify proxy (works once deployed, no CORS)
-        // 2. Dropbox ?raw=1 direct (sometimes works without proxy)
-        // 3. dl.dropboxusercontent.com direct
-        const rawUrl = pdfUrl
-          .replace('www.dropbox.com', 'dl.dropboxusercontent.com')
-          .replace('?dl=0', '?raw=1').replace('&dl=0', '&raw=1')
-          .replace('?dl=1', '?raw=1').replace('&dl=1', '&raw=1');
-        const proxyUrl = '/.netlify/functions/pdf-proxy?url=' + encodeURIComponent(pdfUrl);
-
-        let pdfBytes = null;
+        // Fetch directly from R2 — no CORS, no proxy needed
         const tryFetch = async (url) => {
           const r = await fetch(url);
           if (!r.ok) throw new Error(`HTTP ${r.status}`);
           return r.arrayBuffer();
         };
 
-        if (!useProxy) {
-          // R2 direct URL — no CORS issues, fetch directly
-          console.log('[Deck] Fetching from R2:', pdfUrl.slice(0, 80));
-          pdfBytes = await Promise.race([
-            tryFetch(pdfUrl),
-            new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 15000))
-          ]);
-          console.log('[Deck] R2 fetch succeeded, bytes:', pdfBytes.byteLength);
-        } else {
-          // Dropbox URL — try proxy first, then raw fallback
-          try {
-            console.log('[Deck] Trying proxy:', proxyUrl.slice(0,80));
-            pdfBytes = await Promise.race([
-              tryFetch(proxyUrl),
-              new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
-            ]);
-            console.log('[Deck] Proxy fetch succeeded, bytes:', pdfBytes.byteLength);
-          } catch(e1) {
-            console.warn('[Deck] Proxy fetch failed:', e1.message, '— trying raw URL');
-            pdfBytes = await Promise.race([
-              tryFetch(rawUrl),
-              new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 10000))
-            ]);
-            console.log('[Deck] Raw URL fetch succeeded, bytes:', pdfBytes.byteLength);
-          }
-        }
+        let pdfBytes = null;
+        pdfBytes = await Promise.race([
+          tryFetch(pdfUrl),
+          new Promise((_,rej) => setTimeout(() => rej(new Error('timeout')), 15000))
+        ]);
+        console.log('[Deck] R2 fetch succeeded, bytes:', pdfBytes.byteLength);
 
         const pdfDoc2 = await window.pdfjsLib.getDocument({ data: pdfBytes }).promise;
         const page    = await pdfDoc2.getPage(1);
@@ -1513,14 +1481,11 @@ async function generatePdf(pages, branding) {
       const ix = rx + (rw - iw) / 2, iy = 20 + (imgAreaH - ih) / 2;
       doc.addImage(renderedPdfImg, 'JPEG', ix, iy, iw, ih);
     } else {
-      // Fallback placeholder
+      // No R2 URL — drawing not yet synced to Cloudflare
       setFont(11, 'normal', MUTED);
-      doc.text(pdfUrl ? 'Preview unavailable — see PDF link' : 'No drawing available',
-               rx + rw/2, 20 + imgAreaH/2, { align: 'center' });
-      if (pdfUrl) {
-        setFont(9, 'normal', TEAL);
-        doc.textWithLink('Open PDF ↗', rx + rw/2, 20 + imgAreaH/2 + 18, { url: pdfUrl, align: 'center' });
-      }
+      doc.text('Drawing not yet synced to R2', rx + rw/2, 20 + imgAreaH/2, { align: 'center' });
+      setFont(9, 'normal', MUTED);
+      doc.text('Run PdmR2Sync to upload drawings', rx + rw/2, 20 + imgAreaH/2 + 18, { align: 'center' });
     }
 
     // ── Sell bullets ──────────────────────────────────────────────────────
