@@ -51,10 +51,8 @@ jobs:
         run: node .github/scripts/sync-pdfs.js
 
       - name: Commit updated projects.json
-        if: "${{ github.event.inputs.dry_run != 'true' }}"
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add projects.json
-          git diff --staged --quiet || git commit -m "chore: update R2 PDF links [skip ci]"
-          git push
+          git diff --staged --quiet && echo "No changes to commit" || git commit -m "chore: update R2 PDF links [skip ci]" && git push
