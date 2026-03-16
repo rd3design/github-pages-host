@@ -1,10 +1,21 @@
 name: Sync PDFs to Cloudflare R2
 
 on:
+  # Nightly — just pulls latest projects.json, no heavy PDF processing
+  schedule:
+    - cron: '0 3 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
         description: 'Dry run - fetch but do not upload, just report'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      force:
+        description: 'Force re-upload even if already in R2'
         required: false
         default: 'false'
         type: choice
@@ -23,7 +34,7 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repo
@@ -39,15 +50,16 @@ jobs:
       - name: Install dependencies
         run: npm install @aws-sdk/client-s3
 
-      - name: Run PDF sync
+      - name: Run PDF sync (fallback - Dropbox source)
         env:
           R2_ACCOUNT_ID:    "${{ secrets.R2_ACCOUNT_ID }}"
           R2_ACCESS_KEY_ID: "${{ secrets.R2_ACCESS_KEY_ID }}"
           R2_SECRET_KEY:    "${{ secrets.R2_SECRET_KEY }}"
           R2_BUCKET:        "${{ secrets.R2_BUCKET }}"
           R2_PUBLIC_URL:    "${{ secrets.R2_PUBLIC_URL }}"
-          DRY_RUN:          "${{ github.event.inputs.dry_run }}"
-          LIMIT:            "${{ github.event.inputs.limit }}"
+          DRY_RUN:          "${{ github.event.inputs.dry_run || 'false' }}"
+          FORCE:            "${{ github.event_name == 'schedule' && 'true' || github.event.inputs.force || 'false' }}"
+          LIMIT:            "${{ github.event.inputs.limit || '0' }}"
         run: node .github/scripts/sync-pdfs.js
 
       - name: Commit updated projects.json
@@ -55,4 +67,4 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add projects.json
-          git diff --staged --quiet && echo "No changes to commit" || git commit -m "chore: update R2 PDF links [skip ci]" && git push
+          git diff --staged --quiet && echo "No changes to commit" || git commit -m "chore: update R2 PDF links" && git push
