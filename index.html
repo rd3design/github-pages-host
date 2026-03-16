@@ -924,8 +924,8 @@ function showDetail(unit) {
   document.getElementById('pan-files').innerHTML = files.length === 0
     ? `<div class="state-msg" style="padding:20px;font-size:11px">No PDFs indexed for <b>${esc(unit)}</b></div>`
     : files.map(f => {
-        const uri = f.pdfUrl || ('file:///' + ('\\\\main\\ENGINEERING\\PDM P lines\\' + f.fileName).replace(/\\/g,'/'));
-        const lbl = f.pdfUrl ? 'Open PDF' : '\\\\main\\ENGINEERING\\PDM P lines';
+        const uri = f.r2Url || f.pdfUrl || ('file:///' + ('\\\\main\\ENGINEERING\\PDM P lines\\' + f.fileName).replace(/\\/g,'/'));
+        const lbl = f.r2Url ? 'Open PDF ☁' : f.pdfUrl ? 'Open PDF' : '\\\\main\\ENGINEERING\\PDM P lines';
         return `<a class="file-item" href="${uri}" target="_blank" style="text-decoration:none">
           <div class="file-ext">PDF</div>
           <div style="flex:1;overflow:hidden"><div class="file-name">${esc(f.fileName)}</div><div class="file-path-small">${lbl}</div></div>
