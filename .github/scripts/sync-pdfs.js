@@ -189,8 +189,8 @@ async function main() {
 
   console.log(`\n📊 Done: ${uploaded} uploaded, ${skipped} skipped, ${failed} failed`);
 
-  if (!DRY_RUN && uploaded > 0) {
-    // Write back preserving the original wrapper shape
+  if (!DRY_RUN) {
+    // Always write back — skipped files had their r2Url set in memory too
     const output = Array.isArray(raw) ? projects : { ...raw, projects };
     fs.writeFileSync(projectsPath, JSON.stringify(output, null, 2));
     console.log('💾 projects.json updated with R2 URLs');
