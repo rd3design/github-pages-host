@@ -131,7 +131,7 @@ async function main() {
       totalFiles++;
       if (file.pdfUrl) withPdfUrl++;
       if (file.r2Url) alreadyR2++;
-      if (file.pdfUrl && !file.r2Url) {
+      if (file.pdfUrl && (!file.r2Url || FORCE)) {
         tasks.push({ proj, file });
       }
     }
