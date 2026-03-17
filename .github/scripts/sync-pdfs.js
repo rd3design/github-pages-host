@@ -5,7 +5,7 @@
 const fs   = require('fs');
 const path = require('path');
 const https = require('https');
-const { S3Client, PutObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, HeadObjectCommand, DeleteObjectCommand, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 
 // ── Config from environment ───────────────────────────────────────────────────
 const R2_ACCOUNT_ID    = process.env.R2_ACCOUNT_ID;
@@ -96,6 +96,47 @@ function safeKey(fileName) {
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+// ── Delete old unit-number-based keys from R2 ────────────────────────────────
+// Old keys look like: pdm/6040.30.pdf (unit number only, no descriptive filename)
+// New keys look like: pdm/6040.30.6688_PL_WITH_3021.97.pdf (full filename)
+async function cleanupOldKeys(validKeys) {
+  console.log('\n🧹 Scanning R2 for old unit-number-based keys to delete...');
+  let deleted = 0, kept = 0;
+  let continuationToken = undefined;
+
+  do {
+    const listRes = await r2.send(new ListObjectsV2Command({
+      Bucket: R2_BUCKET,
+      Prefix: 'pdm/',
+      ContinuationToken: continuationToken,
+    }));
+
+    for (const obj of (listRes.Contents || [])) {
+      const key = obj.Key;
+      // Old keys match pattern: pdm/XXXX.XX.pdf (unit number + .pdf only)
+      // New keys have more content after the unit number
+      const fileName = key.replace('pdm/', '');
+      const isOldKey = /^\d{3,4}\.\d{2,3}\.pdf$/.test(fileName);
+
+      if (isOldKey && !validKeys.has(key)) {
+        if (DRY_RUN) {
+          console.log(`  🔍 DRY RUN — would delete old key: ${key}`);
+        } else {
+          await r2.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: key }));
+          console.log(`  🗑️  Deleted old key: ${key}`);
+        }
+        deleted++;
+      } else {
+        kept++;
+      }
+    }
+
+    continuationToken = listRes.NextContinuationToken;
+  } while (continuationToken);
+
+  console.log(`🧹 Cleanup: ${deleted} old keys deleted, ${kept} valid keys kept`);
+}
+
 async function main() {
   const projectsPath = path.join(process.cwd(), 'projects.json');
   if (!fs.existsSync(projectsPath)) {
