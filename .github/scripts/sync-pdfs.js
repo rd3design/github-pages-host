@@ -14,6 +14,7 @@ const R2_SECRET_KEY    = process.env.R2_SECRET_KEY;
 const R2_BUCKET        = process.env.R2_BUCKET;
 const R2_PUBLIC_URL    = (process.env.R2_PUBLIC_URL || '').replace(/\/$/, ''); // no trailing slash
 const DRY_RUN          = process.env.DRY_RUN === 'true';
+const FORCE            = process.env.FORCE === 'true'; // always re-upload even if exists in R2
 const LIMIT            = parseInt(process.env.LIMIT || '0', 10);
 
 if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_KEY || !R2_BUCKET || !R2_PUBLIC_URL) {
@@ -89,8 +90,9 @@ async function uploadToR2(key, buffer) {
 }
 
 // Sanitize a unit number into a safe filename
-function safeKey(unitNumber) {
-  return `pdm/${unitNumber.replace(/[^a-zA-Z0-9._-]/g, '_')}.pdf`;
+function safeKey(fileName) {
+  // Use the actual filename so each file gets a unique R2 key
+  return `pdm/${fileName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -107,6 +109,7 @@ async function main() {
   console.log(`📦 Loaded ${projects.length} projects from projects.json`);
 
   if (DRY_RUN) console.log('🔍 DRY RUN — no uploads will happen');
+  if (FORCE)   console.log('⚡ FORCE mode — re-uploading all PDFs regardless of existing R2 files');
 
   // Diagnostic: sample first project structure
   if (projects.length > 0) {
@@ -144,14 +147,13 @@ async function main() {
 
   for (let i = 0; i < toProcess.length; i++) {
     const { proj, file } = toProcess[i];
-    const key = safeKey(proj.unitNumber);
-    const label = `[${i + 1}/${toProcess.length}] ${proj.unitNumber}`;
+    const key = safeKey(file.fileName || proj.unitNumber + '.pdf');
+    const label = `[${i + 1}/${toProcess.length}] ${file.fileName || proj.unitNumber}`;
 
     try {
-      // Check if already in R2
-      if (!DRY_RUN && await existsInR2(key)) {
-        const r2Url = `${R2_PUBLIC_URL}/${key}`;
-        file.r2Url = r2Url;
+      // Check if already in R2 (skip if FORCE mode — always re-upload)
+      if (!DRY_RUN && !FORCE && await existsInR2(key)) {
+        file.r2Url = `${R2_PUBLIC_URL}/${key}`;
         console.log(`  ⏭  ${label} — already in R2, updating URL`);
         skipped++;
         continue;
