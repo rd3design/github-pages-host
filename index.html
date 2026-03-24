@@ -924,8 +924,8 @@ function showDetail(unit) {
   document.getElementById('pan-files').innerHTML = files.length === 0
     ? `<div class="state-msg" style="padding:20px;font-size:11px">No PDFs indexed for <b>${esc(unit)}</b></div>`
     : files.map(f => {
-        const uri = f.r2Url || f.spUrl || f.pdfUrl || ('file:///' + ('\\\\main\\ENGINEERING\\PDM P lines\\' + f.fileName).replace(/\\/g,'/'));
-        const lbl = f.r2Url ? 'Open PDF ☁' : f.spUrl ? 'Open PDF ☁' : f.pdfUrl ? 'Open PDF' : '\\\\main\\ENGINEERING\\PDM P lines';
+        const uri = f.spUrl || f.r2Url || f.pdfUrl || ('file:///' + ('\\\\main\\ENGINEERING\\PDM P lines\\' + f.fileName).replace(/\\/g,'/'));
+        const lbl = f.spUrl ? 'Open PDF ☁' : f.r2Url ? 'Open PDF ☁' : f.pdfUrl ? 'Open PDF' : '\\\\main\\ENGINEERING\\PDM P lines';
         return `<a class="file-item" href="${uri}" target="_blank" style="text-decoration:none">
           <div class="file-ext">PDF</div>
           <div style="flex:1;overflow:hidden"><div class="file-name">${esc(f.fileName)}</div><div class="file-path-small">${lbl}</div></div>
@@ -1397,8 +1397,8 @@ async function generatePdf(pages, branding) {
     doc.roundedRect(rx, 20, rw, imgAreaH, 8, 8, 'F');
 
     // Render first page of PDF using PDF.js — R2 only, no Dropbox
-    const fileEntry = (proj.files || []).find(f => f.r2Url || f.spUrl);
-    const pdfUrl    = fileEntry?.r2Url || fileEntry?.spUrl || null;
+    const fileEntry = (proj.files || []).find(f => f.spUrl || f.r2Url);
+    const pdfUrl    = fileEntry?.spUrl || fileEntry?.r2Url || null;
     let renderedPdfImg = null;
     console.log(`[Deck] ${proj.unitNumber} — r2Url: ${pdfUrl ? pdfUrl.slice(0,80) : 'NONE'}`);
 
